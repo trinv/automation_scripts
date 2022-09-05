@@ -159,150 +159,44 @@ fi
 
 
 
-####################################################################
-#  _____           _        _ _     ______               _ _______            
-# |_   _|         | |      | | |   |  __  \(_)          | |       \
-#   | |  _ __  ___| |_ __ _| | |   | |__| | _ _ __    __  |
-#   | | | '_ \/ __| __/ _` | | |   |  __ - | | '_ \ / --  |
-#  _| |_| | | \__ \ || (_| | | |   | |__| || | | | | \__| |
-# |_____|_| |_|___/\__\__,_|_|_|   |______/|_|_| |_|\___/_| 
-#                                                            
-#                                                             
-#                                                                  
-####################################################################
-
-nagiosplugin_centos_update() {
-echo "${txtylw}Extract package Nagios plugin${txtrst}"
-sleep 2
-tar -zxvf $nagios_plugin;check
-echo "${txtgrn}Done${txtrst}";sleep 2
-echo "Extract package Nagios plugin successfully" 2> /dev/null  >> $log
-echo
-echo "${txtylw}Compile Nagios plugins update version${txtrst}"
-sleep 2
-cd $folder_plugin
-./configure --with-nagios-user=nagios --with-nagios-group=nagios;check;make;check;make install;check;
-echo "Compile Nagios plugins update version successfully" 2> /dev/null  >> $log
-echo "${txtgrn}Done${txtrst}"
-sleep 2
-
-echo
-echo "${txtylw}Adding Nagios to the list of system services${txtrst}"
-systemctl enable apache2 2>/dev/null
-systemctl enable nagios 2>/dev/null
-systemctl enable httpd 2>/dev/null
-chkconfig --add nagios 2>/dev/null
-chkconfig --level 345 nagios on 2>/dev/null
-chkconfig --add httpd 2>/dev/null
-chkconfig --level 345 httpd on 2>/dev/null
-sleep 1
-echo "${txtgrn}Done${txtrst}"
-echo
-
-echo "Adding Nagios to the list of system services successfully" 2> /dev/null  >> $log
-echo "${txtylw}Verify Nagios configuration files${txtrst}"
-sleep 2
-/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg;check;
-echo "Verify Nagios configuration files successfullyy" 2> /dev/null >> $log
-sleep 1
-echo "${txtgrn}Done${txtrst}"
-
-echo
-echo
-echo "${txtylw}Restarting Nagios Service${txtrst}"
-sleep 1
-systemctl restart nagios.service 2>/dev/null
-service nagios start 2>/dev/null
-echo "Restarting Nagios Service successfully" 2> /dev/null  >> $log
-sleep 1
-echo "${txtgrn}Done${txtrst}"
-echo
-finish
-echo
-}
+#####################################################################
+#  _____           _        _ _     ______               _   ____   #       
+# |_   _|         | |      | | |   |  __  \(_)          | |/  __  \ # 
+#   | |  _ __  ___| |_ __ _| | |   | |__| | _ _ __    __  || |__| | #
+#   | | | '_ \/ __| __/ _` | | |   |  __ - | | '_ \ / --  |\ ___/ | #
+#  _| |_| | | \__ \ || (_| | | |   | |__| || | | | | \__| |    / /  #
+# |_____|_| |_|___/\__\__,_|_|_|   |______/|_|_| |_|\___/_|   /_/   #
+#                                                                   #
+#                                                                   #
+#                                                                   #
+#####################################################################
 
 
-
-nagiosplugin_233() {
-echo
-echo "${txtylw}Extract package Nagios plugins${txtrst}"
+bind9core_install() {
+echo "${txtylw}Extract package BIND9${txtrst}"
 sleep 2
-tar -zxvf nagios-plugins-2.3.3.tar.gz;check
-echo "Extract package Nagios plugins successfully" 2> /dev/null  >> $log
-echo "${txtgrn}Done${txtrst}"
-sleep 2
-echo
-echo
-echo "${txtylw}Compile Nagios plugins version 2.3.3${txtrst}"
-sleep 2
-cd nagios-plugins-2.3.3;
-./configure --with-nagios-user=nagios --with-nagios-group=nagios;check;echo;sleep1;make;check;echo;sleep1;make install;check;echo;sleep 1;
-echo "Compile Nagios plugins version 2.3.3 successfully" 2> /dev/null  >> $log
-echo "${txtgrn}Done${txtrst}"
-sleep 2
-echo
-echo
-echo "${txtylw}Adding Nagios to the list of system services${txtrst}"
-echo
-sleep 2
-systemctl enable apache2 2>/dev/null
-systemctl enable nagios 2>/dev/null
-systemctl enable httpd 2>/dev/null
-chkconfig --add nagios 2>/dev/null
-chkconfig --level 345 nagios on 2>/dev/null
-chkconfig --add httpd 2>/dev/null
-chkconfig --level 345 httpd on 2>/dev/null
-echo "Adding Nagios to the list of system services successfully" 2> /dev/null  >> $log
-echo "${txtgrn}Done${txtrst}"
-echo
-echo "${txtylw}Verify Nagios configuration files${txtrst}"
-sleep 2
-/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg;check;
-echo "Verify Nagios configuration files successfullyy" 2> /dev/null >> $log
-echo ""
-echo "${txtylw}Restarting Nagios Service${txtrst}"
-sleep 1
-systemctl restart nagios.service 2>/dev/null
-service nagios start 2>/dev/null
-echo "Restarting Nagios Service successfully" 2> /dev/null  >> $log
-echo "${txtgrn}Done${txtrst}"
-echo
-sleep 3
-finish
-echo
-}
-
-nagioscore_centos_update() {
-echo "${txtylw}Extract package Nagios${txtrst}"
-sleep 2
-tar -zxvf $nagios_core
+tar -zxvf $bind9_core
 check
 echo "${txtgrn}Done${txtrst}"
 sleep 2
-echo "Extract package Nagios successfully" 2> /dev/null >> $log
+echo "Extract package BIND9 successfully" 2> /dev/null >> $log
 echo;echo
-echo "${txtylw}Adding user and group for nagios${txtrst}"
+echo "${txtylw}Adding user and group for BIND9${txtrst}"
 sleep 2
-useradd -m nagios;groupadd nagcmd;usermod -a -G nagcmd nagios;usermod -a -G nagcmd apache
-echo "Adding user and group for nagios successfully" 2> /dev/null >> $log
+useradd -s /sbin/nologin -d /var/named -c "named" named
+echo "Adding user and group for BIND9 successfully" 2> /dev/null >> $log
 echo "${txtgrn}Done${txtrst}"
 sleep 2;echo
-echo "${txtylw}Compiling Nagios${txtrst}"
+echo "${txtylw}Compiling BIND9${txtrst}"
 sleep 2
-cd $folder_nagios;./configure --with-command-group=nagcmd;check;echo;sleep 1;make all;echo;sleep 1;check;make install;echo;sleep 1;check;make install-init;echo;sleep 1;check;make install-commandmode;echo;sleep 1;check;make install-config;echo;sleep 1;check;make install-webconf;echo;sleep 1;check;
+cd $folder_bind9;./configure;check;echo;sleep 1;make all;echo;sleep 1;check;make install;check;
 echo "${txtgrn}Done${txtrst}"
 echo
 sleep 2
-echo "${txtylw}Creating a NAGIOSADMIN account for logging into the Nagios web interface.${txtrst}"
-echo "${txtylw}Please enter your password below & remember the password you assign to this account you will need it later.${txtrst}"
-htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin;check;
-sleep 2
-echo "Creating a NAGIOSADMIN account Successfull" 2> /dev/null >> $log
-echo "${txtgrn}Done${txtrst}"
-sleep 2
-echo;echo
-echo "${txtylw}Restarting Apache Service${txtrst}"
+
+echo "${txtylw}Restarting BIND9 Service${txtrst}"
 sleep 1
+
 cp /lib/systemd/system/nagios.service /etc/systemd/system 2>/dev/null
 systemctl restart apache2 2>/dev/null
 systemctl restart httpd 2>/dev/null
