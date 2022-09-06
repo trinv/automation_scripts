@@ -41,7 +41,7 @@ echo "#############################################################"
 echo "##                                                         ##"
 echo "##${txtgrn}         Welcome To All In One BIND9 (VNNIC) Script${txtrst}      ##"
 echo "##                  Created By trinv                       ##"
-echo "##          ${txtylw}       trinv@vnnic.vn   ${txtrst}                       ##"
+echo "##          ${txtylw}          trinv@vnnic.vn   ${txtrst}                    ##"
 echo "##                                                         ##"
 echo "#############################################################"
 echo "#############################################################"
@@ -55,7 +55,6 @@ sleep 2
 ############ Variable Definitions  ################
 path='/tmp'
 log=/tmp/bind9_setup.log
-#folder_bind9='/tmp/bind9'
 bind9_dir='/data/named'
 bind9_run='/var/run-named'
 bind9_logs='/data/logdns'
@@ -78,14 +77,14 @@ echo "#############################################################"
 echo "#############################################################"
 echo "##                                                         ##"
 echo "##${txtgrn}  Thank You for using All In One BIND9 (VNNIC) Script${txtrst}  ##"
-echo "##                    Created By VNNIC                     ##"
-echo "##          ${txtylw}       trinv@vnnic.vn   ${txtrst}                 ##"
+echo "##                       Created By VNNIC                     ##"
+echo "##          ${txtylw}           trinv@vnnic.vn   ${txtrst}                 ##"
 echo "##                                                         ##"
 echo "#############################################################"
 echo "#############################################################"
 echo ""
 echo ""
-#############################################################################################################################
+##########################################################################################################################
 sleep 2
 }
 
@@ -135,19 +134,20 @@ thankyou
 fi
 }
 
+bind9_intro () {
+printf "%s\n" "#####################################################################"
+printf "%s\n" "#  _____           _        _ _     ______               _   ____   #"       
+printf "%s\n" "# |_   _|         | |      | | |   |  __  \(_)          | |/  __  \ #" 
+printf "%s\n" "#   | |  _ __  ___| |_ __ _| | |   | |__| | _ _ __    __| || |__| | #"
+printf "%s\n" "#   | | |  _ \/ __] __/ _  | | |   |  __ - | |  _ \ /  _  |\ ___/ | #"
+printf "%s\n" "#  _| |_| | | \__ \ || (_| | | |   | |__| || | | | | \__| |    / /  #"
+printf "%s\n" "# |_____|_| |_|___/\__\__,_|_|_|   |______/|_|_| |_|\___/_|   /_/   #"
+printf "%s\n" "#                                                                   #"
+printf "%s\n" "#                                                                   #"
+printf "%s\n" "#                                                                   #"
+printf "%s\n" "#####################################################################"
 
-#####################################################################
-#  _____           _        _ _     ______               _   ____   #       
-# |_   _|         | |      | | |   |  __  \(_)          | |/  __  \ # 
-#   | |  _ __  ___| |_ __ _| | |   | |__| | _ _ __    __  || |__| | #
-#   | | | '_ \/ __| __/ _` | | |   |  __ - | | '_ \ / --  |\ ___/ | #
-#  _| |_| | | \__ \ || (_| | | |   | |__| || | | | | \__| |    / /  #
-# |_____|_| |_|___/\__\__,_|_|_|   |______/|_|_| |_|\___/_|   /_/   #
-#                                                                   #
-#                                                                   #
-#                                                                   #
-#####################################################################
-
+}
 
 bind9core_centos_install() {
 
@@ -180,24 +180,18 @@ sleep 1
 check
 make install 2>/dev/null >> $log
 check
-
 echo "${txtgrn}Done${txtrst}"
 echo
-
 sleep 2
-
 chown -R named:named $bind9_dir
 chown -R named:named $bind9_run
 chown -R named:named $bind9_logs
-
 echo "${txtylw}Restarting BIND9 Service${txtrst}"
 sleep 1
-
 cp $path/named.service.conf /etc/systemd/system/named.service 2>/dev/null
 systemctl daemon-reload 2>/dev/null
 systemctl restart named 2>/dev/null
 systemctl enable named 2>/dev/null
-
 echo "${txtgrn}Done${txtrst}"
 sleep 2
 echo "Restarting BIND9 Service Successfull" 2>/dev/null >> $log
@@ -205,14 +199,14 @@ bind9_version=`named -v 2>/dev/null`
 sleep 2
 echo
 echo
-echo "${txtgrn} ${bind9_version} has been installed !!!${txtrst}"
+echo "${txtgrn}${bind9_version} has been installed !!!${txtrst}"
 
 }
 
 
 install_centos() {
 ############ Installation Some Packages Needed to Install BIND9  ################
-
+bind9_intro
 echo "${txtylw}Installation Some Packages Needed to Install BIND9.${txtrst}"
 
 
@@ -240,9 +234,6 @@ if [ ! -d  "$bind9_logs" ]; then
         mkdir -p $bind9_logs
 fi
 
-# mkdir –p /data/named
-# mkdir –p /data/logdns
-# mkdir –p /var/run-named
 
 
 }
