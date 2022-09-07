@@ -126,13 +126,71 @@ download_packages () {
     echo " ${txtgrn}Done{txtrst}"
 
 }
+create_bind9_directory () {
+    if [ ! -d  "$bind9_dir" ]; then
+            mkdir -p $bind9_dir
+    fi
+    if [ ! -d  "$bind9_run" ]; then
+            mkdir -p $bind9_run
+    fi
+    if [ ! -d  "$bind9_logs" ]; then
+            mkdir -p $bind9_logs
+    fi
+}
+install_bind9() {
+    echo "${txtylw}Extract package BIND9${txtrst}"
+    sleep 2
+    cd $path
+    tar -zxvf bind-9.11.*.tar.gz 
+    #rm -rf bind9.tar.gz
+    check
+    echo "${txtgrn}Done${txtrst}"
+    sleep 2
+    echo "Extract package BIND9 successfully" 2>/dev/null >> $log
+    echo;echo
+    echo "${txtylw}Adding user and group for BIND9${txtrst}"
+    sleep 2
+    useradd -s /sbin/nologin -d /var/named -c "named" named 2>/dev/null >> $log
+    echo "Adding user and group for BIND9 successfully" 2> /dev/null >> $log
+    echo "${txtgrn}Done${txtrst}"
+    sleep 2;echo
+    echo "${txtylw}Compiling BIND9${txtrst}"
+    sleep 2
+    cd $path/bind-9.11.*
+    ./configure --without-python 2>/dev/null >> $log
+    echo
+    sleep 1
+    make all 2>/dev/null >> $log
+    echo
+    make install 2>/dev/null >> $log
+    echo "${txtgrn}Done${txtrst}"
+    echo
+    sleep 2
+    chown -R named:named $bind9_dir
+    chown -R named:named $bind9_run
+    chown -R named:named $bind9_logs
+    echo "${txtylw}Restarting BIND9 Service${txtrst}"
+    sleep 1
+    cp $path/named.service.conf /etc/systemd/system/named.service 2>/dev/null
+    systemctl daemon-reload 2>/dev/null
+    systemctl restart named 2>/dev/null
+    systemctl enable named 2>/dev/null
+    echo "${txtgrn}Done${txtrst}"
+    sleep 2
+    echo "Restarting BIND9 Service Successfull" 2>/dev/null >> $log
+    bind9_version=`named -v 2>/dev/null`
+    sleep 2
+    echo
+    echo
+    echo "${txtgrn}${bind9_version} has been installed !!!${txtrst}"
+
+}
 
 install_bird() {
     echo "${txtylw}Extract package BIRD${txtrst}"
     sleep 1
     cd $path_package/bird
     tar -zxvf bird-*.tar.gz 
-    check
     echo "${txtgrn}Done${txtrst}"
     sleep 1
     echo "Extract package BIRD successfully"
@@ -140,7 +198,7 @@ install_bird() {
     echo "${txtylw}Compiling BIRD${txtrst}"
     sleep 1
     cd $path_package/bird/bird-*
-    ./configure;check;echo;sleep 1;make;echo;sleep 1;check;make install;check 2>/dev/null >> $log
+    ./configure;echo;sleep 1;make;echo;sleep 1;make install 2>/dev/null >> $log
     /usr/local/sbin/bird
     echo "${txtgrn}Done${txtrst}"
     echo
@@ -191,16 +249,14 @@ install_bird_depend() {
 install_aide () {
     echo "${txtylw}Installation AIDE.${txtrst}"
     yum install -y aide
-    check
     echo "${txtgrn}Done${txtrst}"
 }
 
 install_snmpd () {
     echo "${txtylw}Installation SNMP.${txtrst}"
     yum install -y net-snmp
-    check
     cd $path_package/snmpd
-    cp -f snmpd* /etc/snmpd/snmpd.conf
+    cp -f snmpd* /etc/snmp/snmpd.conf
     systemctl restart snmpd 2>/dev/null
     systemctl enable snmpd 2>/dev/null 
     echo "${txtgrn}Done${txtrst}"
@@ -213,12 +269,20 @@ install_syslogng () {
     rpm -ivh libnet-1.1.6-7.el7.x86_64.rpm 2>/dev/null
     rpm -ivh ivykis-0.36.2-2.el7.x86_64.rpm 2>/dev/null
     rpm -ivh syslog-ng-3.5.6-3.el7.x86_64.rpm 2>/dev/null
-    check
+    
     cp -f syslog-ng.conf /etc/syslog-ng/
     systemctl restart syslog-ng 2>/dev/null
     systemctl enable syslog-ng 2>/dev/null
-    check
+    
     echo "${txtgrn}Done${txtrst}"
+}
+
+install_logrythm() {
+    cd $path_package/logrhythm
+    rpm -ivh scsm-7.6.0.8004-1.el7.x86_64.rpm
+    cp -f scsm_linux.txt /opt/logrhythm/scsm/
+    systemctl restart scsm 2>/dev/null
+    systemctl enable scsm 2>/dev/null
 }
 
 
@@ -297,11 +361,13 @@ check_os () {
 
 install_server () {
     download_packages
+    install_bind9
     install_bird_depend
     install_bird
     install_aide
     install_syslogng
     install_snmpd
+    install_logrythm
 }
 
 notice () {
@@ -314,11 +380,42 @@ notice () {
     echo
 }
 
+### Hostname configuration
+configure_hostname () {
+  hostnamectl set-hostname "$SRV_NAME" && \
+  echo "$SRV_IP  $SRV_NAME" >> /etc/hosts
+  echo "$SRV_NAME" > /etc/hostname
+  return $?
+}
+
+### DNS resolver configuration
+configure_resolver () {
+  echo -e "nameserver 203.119.73.106\nnameserver 117.122.125.106" >/etc/resolv.conf
+  return $?
+}
+
+
+# Network interface name
+SRV_IF=$(ip route get 1 | awk '/dev .+/ {print gensub(/^.+ dev (\w+) .+$/,"\\1","g") ;exit}')
+
+# Primary IP
+netif_conf="/etc/sysconfig/network-scripts/ifcfg-$SRV_IF"
+SRV_IP=`ip route get 1 | sed 's/^.* src \([0-9.]*\).*$/\1/;q'`
+
+# Server name
+echo "Enter your dns server hostname: "
+read dns_hostname
+SRV_NAME=$dns_hostname
+
+
 install_dns_server () {
     notice
+
     check_internet
     check_user
     check_os
+    thankyou
+    finish
 }
 
 install_dns_server
