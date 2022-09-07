@@ -117,13 +117,12 @@ download_packages () {
     echo "${txtylw}Dowloading the packages installation${txtrst}" 
     cd $path
     curl http://10.0.0.133/installer/packages_install.tar.gz -O 2>/dev/null
-    check
-    echo " ${txtgrn}Done{txtrst}"
+    echo "${txtgrn}Done{txtrst}"
     sleep 1
     echo "${txtylw}Extract package installation${txtrst}"
     tar -xvf packages_install.tar.gz 2>/dev/null
     check
-    echo " ${txtgrn}Done{txtrst}"
+    echo "${txtgrn}Done{txtrst}"
 
 }
 create_bind9_directory () {
@@ -139,17 +138,17 @@ create_bind9_directory () {
 }
 install_bind9() {
     echo "${txtylw}Extract package BIND9${txtrst}"
-    sleep 2
-    cd $path
+    sleep 1
+    cd $path_package/bind9
     tar -zxvf bind-9.11.*.tar.gz 
     #rm -rf bind9.tar.gz
     check
     echo "${txtgrn}Done${txtrst}"
-    sleep 2
+    sleep 1
     echo "Extract package BIND9 successfully" 2>/dev/null >> $log
     echo;echo
     echo "${txtylw}Adding user and group for BIND9${txtrst}"
-    sleep 2
+    sleep 1
     useradd -s /sbin/nologin -d /var/named -c "named" named 2>/dev/null >> $log
     echo "Adding user and group for BIND9 successfully" 2> /dev/null >> $log
     echo "${txtgrn}Done${txtrst}"
@@ -165,7 +164,7 @@ install_bind9() {
     make install 2>/dev/null >> $log
     echo "${txtgrn}Done${txtrst}"
     echo
-    sleep 2
+    sleep 1
     chown -R named:named $bind9_dir
     chown -R named:named $bind9_run
     chown -R named:named $bind9_logs
@@ -176,10 +175,8 @@ install_bind9() {
     systemctl restart named 2>/dev/null
     systemctl enable named 2>/dev/null
     echo "${txtgrn}Done${txtrst}"
-    sleep 2
     echo "Restarting BIND9 Service Successfull" 2>/dev/null >> $log
     bind9_version=`named -v 2>/dev/null`
-    sleep 2
     echo
     echo
     echo "${txtgrn}${bind9_version} has been installed !!!${txtrst}"
