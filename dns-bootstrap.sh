@@ -40,10 +40,9 @@ install_archive_url="http://10.0.0.133/installer/packages_install"
 DNS_INSTALL_DIR="/root/dns-deploy"
 server_name=""
 package_password=""
-
 dst_dir="$DNS_INSTALL_DIR"
 dst_package="$dst_dir/install-package"
-install_script="scripts/dns-bootstrap.sh"
+mkdir -p $DNS_INSTALL_DIR
 
 export DNS_INSTALL_DIR
 
@@ -64,7 +63,7 @@ if [ $(id -u) -ne "0" ]; then  echo "This script should be executed by root. Abo
 function set_repo {
     cd $path
     curl -O http://10.0.0.133/installer/repos/remote.repo; rm -rf /etc/yum.repos.d/*;cp -f *.repo /etc/yum.repos.d/ >/dev/null
-    check
+    conf_step $? "Setting the Repos Server"
 }
 
 # User reporting
@@ -141,10 +140,7 @@ function unpack_package {
   src_file="$1"
   exitstatus=0
 
-  tar -C $dst_dir -xzf $src_file 2>&1 ;  exitstatus=$(($exitstatus+$?))
-  if [ ! -x "$dst_dir/$install_script" ]; then
-    exitstatus=$(($exitstatus+1))
-  fi
+  tar -C $dst_dir -xvf $src_file 2>&1 ;  exitstatus=$(($exitstatus+$?))
   conf_step $exitstatus "Installation package integrity"
 }
 
@@ -215,83 +211,83 @@ function bind9_status {
     #+ libssh library (optional, for RPKI-Router protocol)
     #+ binutils
 function depend_packages {
-    `rpm -qa gcc`                                                   > /dev/null
+    rpm -qa gcc                                                   > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install gcc                                      > /dev/null
             conf_step $? "Installing GCC package."
-        else
-            conf_step $? "Detecting GCC"
         fi
-    `rpm -qa glibc`                                                 > /dev/null
+            conf_step $? "Detecting GCC"
+        
+    rpm -qa glibc                                                 > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install glibc glibc-common                       > /dev/null
             conf_step $? "Installing glibc package."
-        else
-            conf_step $? "Detecting glibc"
         fi
-    `rpm -qa make`                                                  > /dev/null
+            conf_step $? "Detecting glibc"
+        
+    rpm -qa make                                                  > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install make                                     > /dev/null
             conf_step $? "Installing make package."
-        else
-            conf_step $? "Detecting glibc"
         fi
-    `rpm -qa net-snmp`                                              > /dev/null
+            conf_step $? "Detecting glibc"
+        
+    rpm -qa net-snmp                                              > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install net-snmp                                 > /dev/null
             conf_step $? "Installing net-snmp package."
-        else
-            conf_step $? "Detecting net-snmp"
         fi
-    `rpm -qa bison`                                                 > /dev/null
+            conf_step $? "Detecting net-snmp"
+        
+    rpm -qa bison                                                 > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install bison                                    > /dev/null
             conf_step $? "Installing bison package."
-        else
-            conf_step $? "Detecting bison"
         fi
-    `rpm -qa ncurses`                                               > /dev/null
+            conf_step $? "Detecting bison"
+        
+    rpm -qa ncurses                                               > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install ncurses-devel                            > /dev/null
             conf_step $? "Installing ncurses package."
-        else
-            conf_step $? "Detecting ncurses"
         fi
-    `rpm -qa readline`                                              > /dev/null
+            conf_step $? "Detecting ncurses"
+        
+    rpm -qa readline                                              > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install readline-devel                           > /dev/null
             conf_step $? "Installing readline package."
-        else
-            conf_step $? "Detecting readline"
         fi
-    `rpm -qa binutils`                                              > /dev/null
+            conf_step $? "Detecting readline"
+        
+    rpm -qa binutils                                              > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install binutils                                 > /dev/null
             conf_step $? "Installing binutils package."
-        else
-            conf_step $? "Detecting binutils"
         fi
-    `rpm -qa flex`                                                  > /dev/null
-            if [ $? -ne 0 ]; then
+            conf_step $? "Detecting binutils"
+        
+    rpm -qa flex                                                  > /dev/null
+        if [ $? -ne 0 ]; then
             yum -y install flex                                     > /dev/null
             conf_step $? "Installing flex package."
-        else
-            conf_step $? "Detecting flex"
         fi
-    `rpm -qa m4`                                                    > /dev/null
+            conf_step $? "Detecting flex"
+        
+    rpm -qa m4                                                    > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install m4                                       > /dev/null
             conf_step $? "Installing m4 package."
-        else
-            conf_step $? "Detecting m4"
         fi
-    `rpm -qa libssh*`                                               > /dev/null
+            conf_step $? "Detecting m4"
+        
+    rpm -qa libssh*                                               > /dev/null
             if [ $? -ne 0 ]; then
             yum -y install libssh*                                  > /dev/null
             conf_step $? "Installing libssh package."
-        else
-            conf_step $? "Detecting libssh"
         fi
+            conf_step $? "Detecting libssh"
+        
 }
 
 function extract_bird {
@@ -319,13 +315,13 @@ function bird_status {
 ########################################Other Packages##################################################
 
 function install_aide  {
-    `rpm -qa aide`                                                  > /dev/null
+    rpm -qa aide                                                  > /dev/null
         if [ $? -ne 0 ]; then
             yum -y install aide                                     > /dev/null
             conf_step $? "Installing aide package."
-        else
+        fi
             conf_step $? "Detecting aide"
-        fi    
+            
 }
 function config_aide {
     mkdir -p /data/logsystem
@@ -389,11 +385,13 @@ SRV_IP=`ip route get 1 | sed 's/^.* src \([0-9.]*\).*$/\1/;q'`
 
 
 # Perform actions
+prerequisites_check
+input_data
+set_repo
 download_install_package $install_archive_url $dst_package.aes
 decrypt_package "$package_password" $dst_package.aes $dst_package.tar.gz
 unpack_package $dst_package.tar.gz
 
-set_repo
 depend_packages
 create_bind9_dir
 extract_bind9
