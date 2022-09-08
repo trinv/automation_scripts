@@ -47,9 +47,6 @@ export DNS_INSTALL_DIR
 STEP_LOG="/root/dns-deploy.log"
 echo -n > $STEP_LOG
 
-server_name=""
-package_password=""
-
 # Check if this script has root credentials
 if [ $(id -u) -ne "0" ]; then  echo "This script should be executed by root. Aborting."; exit 1; fi
 
@@ -476,13 +473,12 @@ function auto_install_cleanup {
   return 0
 }
 SRV_IP=`ip route get 1 | sed 's/^.* src \([0-9.]*\).*$/\1/;q'`
-SRV_NAME=$server_name
 
 ### Hostname configuration
 function configure_hostname {
-  hostnamectl set-hostname "$SRV_NAME" && \
-  echo "$SRV_IP  $SRV_NAME" >> /etc/hosts
-  echo "$SRV_NAME" > /etc/hostname
+  hostnamectl set-hostname "$server_name" && \
+  echo "$SRV_IP  $server_name" >> /etc/hosts
+  echo "$server_name" > /etc/hostname
 
   return $?
 }
@@ -524,6 +520,7 @@ auto_install_cleanup
 echo -e "\n\n----"
 echo -e "\033[1;32mDNS Server initial configuration is successful.\033[0m"
 echo -e "Server's primary IP address: \033[1m$SRV_IP\033[0m"
+echo -e "Server's Hostname: \033[1m$server_name\033[0m"
 echo "Please reboot your server to complete this procedure."
 echo -e "\nWaiting 60 seconds until automatic reboot. \033[1;33mPress CTRL+C to cancel\033[0m."
 sleep 60
