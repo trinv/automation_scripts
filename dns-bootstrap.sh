@@ -32,11 +32,8 @@ txtwht=$(tput setaf 7)    # White
 txtrst=$(tput sgr0)       # Text reset
 
 ############ Variable Definitions  ################
-#path='/tmp'
-#path_package='/tmp/packages_install'
-#dst_package="$dst_dir/install-package"
 
-install_archive_url="http://10.0.0.133/installer/packages_install"
+install_archive_url="http://10.0.0.133/installer/install-package"
 DNS_INSTALL_DIR="/root/dns-deploy"
 server_name=""
 package_password=""
@@ -84,17 +81,26 @@ function conf_step {
 
 # Checking the minimum requirements for this script to run
 function prerequisites_check {
-  which curl > /dev/null
+  which curl >/dev/null 2>&1
   conf_step $? "Detecting URL fetch program"
 
   # OpenSSL
-  which openssl > /dev/null
+  rpm -qa | grep openssl >/dev/null 2>&1
   if [ $? -ne 0 ]; then
     yum -y install openssl
     conf_step $? "Installing OpenSSL package."
   fi
-  which openssl > /dev/null
   conf_step $? "Detecting OpenSSL"
+  
+
+  # OpenSSL Devel
+  rpm -qa | grep openssl-devel >/dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    yum -y install openssl-devel
+    conf_step $? "Installing OpenSSL Devel package."
+  fi
+  conf_step $? "Detecting OpenSSL Devel"
+  
 
   # Temporary directory
   mkdir -p $dst_dir
@@ -140,7 +146,7 @@ function unpack_package {
   src_file="$1"
   exitstatus=0
 
-  tar -C $dst_dir -xvf $src_file 2>&1 ;  exitstatus=$(($exitstatus+$?))
+  tar -C $dst_dir -xvf $src_file >/dev/null 2>&1 ;  exitstatus=$(($exitstatus+$?))
   conf_step $exitstatus "Installation package integrity"
 }
 
@@ -163,35 +169,41 @@ function create_bind9_dir {
 }
 function extract_bind9 {
     cd $dst_package/bind9
-    tar -zxvf bind-9.11.*.tar.gz
+    tar -zxvf bind-9.11.*.tar.gz                            >/dev/null 2>&1
     conf_step $? "Extracting package BIND9"
 }
 
 function add_bind9_user {
-    useradd -s /sbin/nologin -d /var/named -c "named" named > /dev/null
-    conf_step $? "Adding user and group for BIND9"
+    egrep -i "^named" /etc/passwd                               >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        useradd -s /sbin/nologin -d /var/named -c "named" named >/dev/null 2>&1
+        conf_step $? "Adding user and group for BIND9"
+    
+    fi
+    
+    conf_step $? "User named already exists"
 
 }
 
 function compli_bind9 {
     cd $dst_package/bind9/bind-9.11.*
-    ./configure --without-python    > /dev/null
-    make all                        >/dev/null 
-    make install                    > /dev/null
-    chown -R named:named $bind9_dir
-    chown -R named:named $bind9_run
-    chown -R named:named $bind9_logs
+    ./configure --without-python                                        >/dev/null 2>&1
+    make all                                                            >/dev/null 2>&1 
+    make install                                                        >/dev/null 2>&1
+    chown -R named:named $bind9_dir                                     >/dev/null 2>&1
+    chown -R named:named $bind9_run                                     >/dev/null 2>&1
+    chown -R named:named $bind9_logs                                    >/dev/null 2>&1
     conf_step $? "Compiling BIND9"
    
 }
 function add_named_service {
-    cp $dst_package/bind9/named.service.conf /etc/systemd/system/named.service > /dev/null
+    cp $dst_package/bind9/named.service.conf /etc/systemd/system/named.service >/dev/null 2>&1
     conf_step $? "Adding named to Systemd"
 
 }
 
 function bind9_status {
-    bind9_version=`named -v > /dev/null`
+    bind9_version=`named -v | awk '{print $1" " $2}'`                  >/dev/null 2>&1
     conf_step $? "BIND9 version $bind9_version has been installed"
 
 }
@@ -211,103 +223,156 @@ function bind9_status {
     #+ libssh library (optional, for RPKI-Router protocol)
     #+ binutils
 function depend_packages {
-    rpm -qa gcc                                                   > /dev/null
+    check_binutils
+    check_binutils_devel
+    check_bison
+    check_flex
+    check_gcc
+    check_glibc
+    check_libssh2
+    check_m4
+    check_make
+    check_ncurses
+    check_ncurses_devel
+    check_readline
+    check_readline_devel
+    check_snmp
+}
+
+function check_gcc {
+    rpm -qa  | grep gcc                                                    >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install gcc                                      > /dev/null
+            yum -y install gcc                                      >/dev/null 2>&1
             conf_step $? "Installing GCC package."
         fi
             conf_step $? "Detecting GCC"
         
-    rpm -qa glibc                                                 > /dev/null
+}
+function check_glibc {        
+    rpm -qa  | grep glibc                                                 >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install glibc glibc-common                       > /dev/null
+            yum -y install glibc glibc-common                       >/dev/null 2>&1
             conf_step $? "Installing glibc package."
         fi
             conf_step $? "Detecting glibc"
-        
-    rpm -qa make                                                  > /dev/null
+}
+function check_make {        
+    rpm -qa  | grep make                                                   >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install make                                     > /dev/null
+            yum -y install make                                     >/dev/null 2>&1
             conf_step $? "Installing make package."
         fi
             conf_step $? "Detecting glibc"
-        
-    rpm -qa net-snmp                                              > /dev/null
+}
+function check_snmp {      
+    rpm -qa  | grep net-snmp                                                >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install net-snmp                                 > /dev/null
+            yum -y install net-snmp                                 >/dev/null 2>&1
             conf_step $? "Installing net-snmp package."
         fi
             conf_step $? "Detecting net-snmp"
-        
-    rpm -qa bison                                                 > /dev/null
+}
+function check_bison {        
+    rpm -qa   | grep bison                                                  >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install bison                                    > /dev/null
+            yum -y install bison                                    >/dev/null 2>&1
             conf_step $? "Installing bison package."
         fi
             conf_step $? "Detecting bison"
-        
-    rpm -qa ncurses                                               > /dev/null
+}
+function check_ncurses {        
+    rpm -qa   | grep ncurses                                                >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install ncurses-devel                            > /dev/null
+            yum -y install ncurses                                  >/dev/null 2>&1
             conf_step $? "Installing ncurses package."
         fi
             conf_step $? "Detecting ncurses"
-        
-    rpm -qa readline                                              > /dev/null
+}
+function check_ncurses_devel {
+    rpm -qa   | grep ncurses-devel                                         >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install readline-devel                           > /dev/null
+            yum -y install ncurses-devel                            >/dev/null 2>&1
+            conf_step $? "Installing ncurses-devel package."
+        fi
+            conf_step $? "Detecting ncurses-devel"
+}
+function check_readline {        
+    rpm -qa    | grep readline                                              >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            yum -y install readline                                 >/dev/null 2>&1
             conf_step $? "Installing readline package."
         fi
             conf_step $? "Detecting readline"
-        
-    rpm -qa binutils                                              > /dev/null
+}
+function check_readline_devel {
+    rpm -qa  | grep readline-devel                                         >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install binutils                                 > /dev/null
+            yum -y install readline-devel                           >/dev/null 2>&1
+            conf_step $? "Installing readline-devel package."
+        fi
+            conf_step $? "Detecting readline-devel"
+        
+}
+function check_binutils {               
+    rpm -qa   | grep binutils                                               >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            yum -y install binutils                                 >/dev/null 2>&1
             conf_step $? "Installing binutils package."
         fi
             conf_step $? "Detecting binutils"
-        
-    rpm -qa flex                                                  > /dev/null
+}
+function check_binutils_devel {
+    rpm -qa  | grep binutils-devel                                           >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install flex                                     > /dev/null
+            yum -y install binutils-devel                           >/dev/null 2>&1
+            conf_step $? "Installing binutils-devel package."
+        fi
+            conf_step $? "Detecting binutils-devel"
+}
+function check_flex {        
+    rpm -qa | grep  flex                                                    >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            yum -y install flex | wc -l                                     >/dev/null 2>&1
             conf_step $? "Installing flex package."
         fi
             conf_step $? "Detecting flex"
-        
-    rpm -qa m4                                                    > /dev/null
+}
+function check_m4 {    
+    rpm -qa | grep m4                                                      >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install m4                                       > /dev/null
+            yum -y install m4 | wc -l                                       >/dev/null 2>&1
             conf_step $? "Installing m4 package."
         fi
             conf_step $? "Detecting m4"
-        
-    rpm -qa libssh*                                               > /dev/null
+}
+function check_libssh2 {        
+    rpm -qa  | grep libssh*                                              >/dev/null 2>&1
             if [ $? -ne 0 ]; then
-            yum -y install libssh*                                  > /dev/null
+            yum -y install libssh*                                  >/dev/null 2>&1
             conf_step $? "Installing libssh package."
         fi
             conf_step $? "Detecting libssh"
         
 }
+##################################################################################################
 
 function extract_bird {
     cd $dst_package/bird
-    tar -zxvf bird-*.tar.gz                                         > /dev/null
+    tar -zxvf bird-*.tar.gz                                         >/dev/null 2>&1
     conf_step $? "Extracting package BIRD"
 }
 
 function compli_bird {
     cd $dst_package/bird/bird-*
-    ./configure                                                     > /dev/null
-    make                                                            > /dev/null
-    make install                                                    > /dev/null
-    /usr/local/sbin/bird
+    ./configure                                                     >/dev/null 2>&1
+    make                                                            >/dev/null 2>&1
+    make install                                                    >/dev/null 2>&1
     conf_step $? "Compiling package BIRD"
 }
 
 function bird_status {
     /usr/local/sbin/bird
-    bird_version=`/usr/local/sbin/birdc show status | grep 'BIRD' | awk {'print $2'} | head -1 > /dev/null`
+    bird_version=`/usr/local/sbin/birdc show status | grep 'BIRD' | awk {'print $2'} | head -1` >/dev/null 2>&1
     conf_step $? "BIRD version $bird_version has been installed"
 
 }
@@ -315,12 +380,13 @@ function bird_status {
 ########################################Other Packages##################################################
 
 function install_aide  {
-    rpm -qa aide                                                  > /dev/null
+    rpm -qa  | grep aide                                                 >/dev/null 2>&1
         if [ $? -ne 0 ]; then
-            yum -y install aide                                     > /dev/null
+            yum -y install aide                                     >/dev/null 2>&1
             conf_step $? "Installing aide package."
         fi
             conf_step $? "Detecting aide"
+        
             
 }
 function config_aide {
@@ -340,11 +406,30 @@ function config_snmpd {
 
 function install_syslogng  {
     cd $dst_package/syslog-ng_rh7
-    rpm -ivh eventlog-0.2.13-4.el7.x86_64.rpm >/dev/null            > /dev/null
-    rpm -ivh libnet-1.1.6-7.el7.x86_64.rpm >/dev/null               > /dev/null
-    rpm -ivh ivykis-0.36.2-2.el7.x86_64.rpm >/dev/null              > /dev/null
-    rpm -ivh syslog-ng-3.5.6-3.el7.x86_64.rpm >/dev/null            > /dev/null
-    conf_step $? "Installing SYSLOG-NG"
+    rpm -qa  | grep eventlog                                              >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            rpm -ivh eventlog-0.2.13-4.el7.x86_64.rpm                           >/dev/null 2>&1            
+            conf_step $? "Installing eventlog package."
+        fi
+            conf_step $? "Detecting eventlog"
+    rpm -qa  | grep libnet                                              >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            rpm -ivh libnet-1.1.6-7.el7.x86_64.rpm                              >/dev/null 2>&1               
+            conf_step $? "Installing libnet package."
+        fi
+            conf_step $? "Detecting libnet"
+    rpm -qa  | grep ivykis                                              >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+        rpm -ivh ivykis-0.36.2-2.el7.x86_64.rpm                             >/dev/null 2>&1              
+            conf_step $? "Installing ivykis package."
+        fi
+            conf_step $? "Detecting ivykis" 
+    rpm -qa  | grep syslog-ng-3.5                                              >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            rpm -ivh syslog-ng-3.5.6-3.el7.x86_64.rpm                           >/dev/null 2>&1 
+            conf_step $? "Installing SYSLOG-NG."
+        fi
+            conf_step $? "Detecting syslog-ng-3.5"            
 
 }
 function config_syslogng {
@@ -357,17 +442,26 @@ function config_syslogng {
 
 function install_logrhythm {
     cd $dst_package/logrhythm
-    rpm -ivh scsm-7.6.0.8004-1.el7.x86_64.rpm                       > /dev/null
+    rpm -qa  | grep scsm                                              >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            rpm -ivh scsm-7.6.0.8004-1.el7.x86_64.rpm                       >/dev/null 2>&1
+            conf_step $? "Installing Logrhythm Agent."
+        fi
+            conf_step $? "Detecting Logrhythm Agent"   
     cp -f scsm_linux.txt /opt/logrhythm/scsm/
-    systemctl restart scsm                                          >/dev/null               
-    systemctl enable scsm                                           >/dev/null
-    conf_step $? "Installing Logrhythm Agent"
+    systemctl restart scsm                                          >/dev/null 2>&1               
+    systemctl enable scsm                                           >/dev/null 2>&1
+    conf_step $?  "Logrhythm Agent Installed"   
 
 }
 function install_deepsecurity {
     cd $dst_package/deepsecurity
-    rpm -ivh Agent-PGPCore-RedHat_EL7-20.0.0-2009.x86_64.rpm        > /dev/null
-    conf_step $? "Installing Deep Security"
+    rpm -qa  | grep  ds_agent                                              >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            rpm -ivh Agent-PGPCore-RedHat_EL7-20.0.0-2009.x86_64.rpm        2>/dev/null 2>&1
+            conf_step $? "Installing Deep Security"
+        fi
+            conf_step $? "Detecting Logrhythm Agent"   
 
 }
 
@@ -382,7 +476,16 @@ function auto_install_cleanup {
   return 0
 }
 SRV_IP=`ip route get 1 | sed 's/^.* src \([0-9.]*\).*$/\1/;q'`
+SRV_NAME=$server_name
 
+### Hostname configuration
+function configure_hostname {
+  hostnamectl set-hostname "$SRV_NAME" && \
+  echo "$SRV_IP  $SRV_NAME" >> /etc/hosts
+  echo "$SRV_NAME" > /etc/hostname
+
+  return $?
+}
 
 # Perform actions
 prerequisites_check
@@ -392,17 +495,20 @@ download_install_package $install_archive_url $dst_package.aes
 decrypt_package "$package_password" $dst_package.aes $dst_package.tar.gz
 unpack_package $dst_package.tar.gz
 
+echo "Checking requirements package, please wait."
 depend_packages
+echo "Installing BIND9, please wait."
 create_bind9_dir
 extract_bind9
 add_bind9_user
 compli_bind9
+#add_named_service
 bind9_status
-
+echo "Installing BIRD, please wait."
 extract_bird
 compli_bird
 bird_status
-
+echo "Installing Admin Tools, please wait."
 install_aide
 config_aide
 config_snmpd
@@ -410,6 +516,7 @@ install_syslogng
 config_syslogng
 install_logrhythm
 install_deepsecurity
+configure_hostname
 
 echo "Removing temporary files"                  
 auto_install_cleanup
