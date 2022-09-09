@@ -42,7 +42,9 @@ if [ $(id -u) -ne "0" ]; then  echo "This script should be executed by root. Abo
 # Set the repo config to connect the Repos Server
 function set_repo {
     cd $path
-    curl -O http://10.0.0.133/installer/repos/remote.repo; rm -rf /etc/yum.repos.d/*;cp -f *.repo /etc/yum.repos.d/ >/dev/null
+    curl -O http://10.0.0.133/installer/repos/remote.repo
+    rm -rf /etc/yum.repos.d/*
+    cp -f *.repo /etc/yum.repos.d/ 
     conf_step $? "Setting the Repos Server"
 }
 
@@ -64,22 +66,22 @@ function conf_step {
 
 # Checking the minimum requirements for this script to run
 function prerequisites_check {
-  which curl >/dev/null 2>&1
+  which curl                                                >/dev/null 2>&1
   conf_step $? "Detecting URL fetch program"
 
   # OpenSSL
-  rpm -qa | grep openssl >/dev/null 2>&1
+  rpm -qa | grep openssl                                    >/dev/null 2>&1
   if [ $? -ne 0 ]; then
-    yum -y install openssl
+    yum -y install openssl                                  >/dev/null 2>&1
     conf_step $? "Installing OpenSSL package."
   fi
   conf_step $? "Detecting OpenSSL"
   
 
   # OpenSSL Devel
-  rpm -qa | grep openssl-devel >/dev/null 2>&1
+  rpm -qa | grep openssl-devel                              >/dev/null 2>&1
   if [ $? -ne 0 ]; then
-    yum -y install openssl-devel
+    yum -y install openssl-devel                            >/dev/null 2>&1
     conf_step $? "Installing OpenSSL Devel package."
   fi
   conf_step $? "Detecting OpenSSL Devel"
@@ -485,9 +487,9 @@ function configure_hostname {
 }
 
 # Perform actions
+set_repo
 prerequisites_check
 input_data
-set_repo
 download_install_package $install_archive_url $dst_package.aes
 decrypt_package "$package_password" $dst_package.aes $dst_package.tar.gz
 unpack_package $dst_package.tar.gz
